@@ -3,8 +3,10 @@ import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert } from 
 import { City, Settings } from 'lucide-react-native';
 import EventCard from '../components/EventCard';
 import { listEvents } from '../services/events';
+import { useFilters } from '../state/FiltersContext';
 
 export default function Feed({ navigation }) {
+  const { filters } = useFilters();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -12,7 +14,7 @@ export default function Feed({ navigation }) {
   const load = async () => {
     setLoading(true);
     try {
-      const rows = await listEvents();
+      const rows = await listEvents(filters);
       setEvents(rows);
     } catch (e) {
       Alert.alert('Fehler', e.message);
@@ -23,7 +25,8 @@ export default function Feed({ navigation }) {
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters)]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -31,15 +34,29 @@ export default function Feed({ navigation }) {
     setRefreshing(false);
   }, []);
 
+  const activeFiltersCount = [
+    filters.city,
+    (filters.sports || []).length > 0 ? 'sports' : '',
+    filters.dateFrom,
+    filters.dateTo,
+    filters.minDistance,
+    filters.maxDistance
+  ].filter(Boolean).length;
+
   return (
     <View className="flex-1 bg-background">
       <View className="px-4 pt-6 pb-3 bg-white flex-row items-center justify-between">
-        <TouchableOpacity className="flex-row items-center">
+        <TouchableOpacity className="flex-row items-center" onPress={() => navigation.navigate('Filters')}>
           <City color="#000" size={20} />
-          <Text className="ml-2 font-bold text-black">Stadt wählen</Text>
+          <Text className="ml-2 font-bold text-black">{filters.city || 'Stadt wählen'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Filters')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Filters')} className="flex-row items-center">
           <Settings color="#000" size={20} />
+          {activeFiltersCount > 0 && (
+            <View className="ml-2 bg-accent rounded-full px-2 py-0.5">
+              <Text className="text-white text-xs font-bold">{activeFiltersCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 

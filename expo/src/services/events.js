@@ -5,22 +5,29 @@ async function getCurrentUserId() {
   return user?.id || null;
 }
 
-export async function listEvents({ city, sport } = {}) {
+export async function listEvents(filters = {}) {
+  const { city, sports, dateFrom, dateTo, minDistance, maxDistance } = filters;
+
   let query = supabase.from('events').select('*').order('date', { ascending: true });
   if (city) query = query.eq('city', city);
-  if (sport) query = query.eq('sport', sport);
+  if (Array.isArray(sports) && sports.length > 0) query = query.in('sport', sports);
+  if (dateFrom) query = query.gte('date', dateFrom);
+  if (dateTo) query = query.lte('date', dateTo);
+  if (typeof minDistance === 'number') query = query.gte('distance_km', minDistance);
+  if (typeof maxDistance === 'number') query = query.lte('distance_km', maxDistance);
+
   const { data: events, error } = await query;
   if (error) throw error;
 
   // Fetch participants for listed events to compute counts
-  const ids = events.map(e => e.id);
+  const ids = (events || []).map(e => e.id);
   if (ids.length === 0) return [];
   const { data: parts, error: perr } = await supabase
     .from('participants')
     .select('event_id, user_id')
     .in('event_id', ids);
   if (perr) throw perr;
-  const counts = parts.reduce((acc, p) => {
+  const counts = (parts || []).reduce((acc, p) => {
     acc[p.event_id] = (acc[p.event_id] || 0) + 1;
     return acc;
   }, {});
@@ -36,18 +43,17 @@ export async function getEventById(id) {
     .eq('event_id', id);
   if (perr) throw perr;
   const userId = await getCurrentUserId();
-  const joined = !!parts.find(p => p.user_id === userId);
-  return { event, participants: parts, joined };
+  const joined = !!parts?.find(p => p.user_id === userId);
+  return { event, participants: parts || [], joined };
 }
 
 function parseDateTime(dateStr, timeStr) {
-  // dateStr: "12.09." or "12.09" ; timeStr: "18:00"
   try {
-    const [d, mRaw] = dateStr.replace('.', '').split('.');
-    const m = mRaw;
+    const cleaned = dateStr.replace(/\.$/, '');
+    const [d, m] = cleaned.split('.');
     const [hh, mm] = timeStr.split(':');
     const year = new Date().getFullYear();
-    const dt = new Date(Date.UTC(year, Number(m) - 1, Number(d), Number(hh), Number(mm)));
+    const dt = new Date(Date.UTC(Number(year), Number(m) - 1, Number(d), Number(hh), Number(mm)));
     return dt.toISOString();
   } catch {
     return new Date().toISOString();
@@ -61,7 +67,6 @@ export async function createEvent({ title, sport, dateStr, timeStr, location_tex
   const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id };
   const { data, error } = await supabase.from('events').insert([payload]).select().single();
   if (error) throw error;
-  // host joins automatically
   await supabase.from('participants').upsert({ event_id: data.id, user_id: host_id });
   return data;
 }

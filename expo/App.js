@@ -14,6 +14,7 @@ import Profile from './src/screens/Profile';
 import Matching from './src/screens/Matching';
 import Filters from './src/screens/Filters';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
+import { FiltersProvider } from './src/state/FiltersContext';
 import { Colors } from './src/styles/colors';
 import { useAppFonts } from './src/styles/typography';
 
@@ -96,10 +97,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer theme={MyTheme}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </NavigationContainer>
+        <FiltersProvider>
+          <NavigationContainer theme={MyTheme}>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </NavigationContainer>
+        </FiltersProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
