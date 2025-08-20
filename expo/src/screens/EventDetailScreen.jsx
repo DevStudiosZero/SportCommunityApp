@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Alert, TouchableOpacity, Linking, Platform, Switch, ScrollView, Image } from 'react-native';
 import { getEventById, joinEvent, leaveEvent, setPacer, boostEvent, unboostEvent } from '../services/events';
+import { subscribeParticipants, subscribeBoosts } from '../services/realtime';
 
 function openMap({ lat, lng, label }) {
   try {
@@ -51,6 +52,12 @@ export default function EventDetailScreen({ route }) {
 
   useEffect(() => {
     load();
+    const offParts = subscribeParticipants({ eventId: id, onChange: () => load() });
+    const offBoosts = subscribeBoosts({ eventId: id, onChange: () => load() });
+    return () => {
+      offParts?.();
+      offBoosts?.();
+    };
   }, [id]);
 
   const isPast = useMemo(() => {
@@ -73,7 +80,6 @@ export default function EventDetailScreen({ route }) {
     try {
       if (joined) await leaveEvent(event.id);
       else await joinEvent(event.id, pacer);
-      await load();
     } catch (e) {
       Alert.alert('Fehler', e.message);
     } finally {
@@ -86,7 +92,6 @@ export default function EventDetailScreen({ route }) {
     try {
       if (!joined) return; // will be used on join
       await setPacer(event.id, value);
-      await load();
     } catch (e) {
       Alert.alert('Fehler', e.message);
     }
@@ -101,7 +106,6 @@ export default function EventDetailScreen({ route }) {
     try {
       if (boostedByMe) await unboostEvent(event.id);
       else await boostEvent(event.id);
-      await load();
     } catch (e) {
       Alert.alert('Fehler', e.message);
     } finally {
