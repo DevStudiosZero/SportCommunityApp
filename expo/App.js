@@ -16,6 +16,7 @@ import Filters from './src/screens/Filters';
 import UserProfile from './src/screens/UserProfile';
 import Inbox from './src/screens/Inbox';
 import Chat from './src/screens/Chat';
+import MapPicker from './src/screens/MapPicker';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { FiltersProvider } from './src/state/FiltersContext';
 import { ToastProvider, useToast } from './src/state/ToastContext';
@@ -82,7 +83,6 @@ function GlobalRealtimeToasts() {
         userId: user.id,
         onInsert: (payload) => {
           const m = payload?.new;
-          // Optional: check local push preference; we still show in-app toast
           if (m?.from_display_name) {
             show(`Neue Nachricht von ${m.from_display_name}`, 'info');
           } else {
@@ -101,7 +101,6 @@ function GlobalPushRegister() {
     (async () => {
       const profile = await getProfile();
       if (profile?.push_enabled === false) {
-        // ensure token cleared if user disabled push
         await ensurePushPreferenceRespected();
       } else {
         await ensurePushPreferenceRespected();
@@ -130,11 +129,12 @@ function RootNavigator() {
         <>
           <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
           <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Event' }} />
-          <Stack.Screen name="Matching" component={Matching} />
+          <Stack.Screen name="Matching" component={Matching} options={{ title: 'Matching' }} />
           <Stack.Screen name="Filters" component={Filters} options={{ title: 'Filter' }} />
           <Stack.Screen name="UserProfile" component={UserProfile} options={{ title: 'Profil' }} />
           <Stack.Screen name="Inbox" component={Inbox} options={{ title: 'Nachrichten' }} />
           <Stack.Screen name="Chat" component={Chat} options={{ title: 'Chat' }} />
+          <Stack.Screen name="MapPicker" component={MapPicker} options={{ title: 'Treffpunkt wählen' }} />
         </>
       )}
     </Stack.Navigator>
