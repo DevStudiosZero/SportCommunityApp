@@ -13,8 +13,10 @@ import CreateEvent from './src/screens/CreateEvent';
 import Profile from './src/screens/Profile';
 import Matching from './src/screens/Matching';
 import Filters from './src/screens/Filters';
+import UserProfile from './src/screens/UserProfile';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { FiltersProvider } from './src/state/FiltersContext';
+import { ToastProvider } from './src/state/ToastContext';
 import { Colors } from './src/styles/colors';
 import { useAppFonts } from './src/styles/typography';
 
@@ -77,6 +79,7 @@ function RootNavigator() {
           <Stack.Screen name="EventDetail" component={EventDetailScreen} options={{ title: 'Event' }} />
           <Stack.Screen name="Matching" component={Matching} />
           <Stack.Screen name="Filters" component={Filters} options={{ title: 'Filter' }} />
+          <Stack.Screen name="UserProfile" component={UserProfile} options={{ title: 'Profil' }} />
         </>
       )}
     </Stack.Navigator>
@@ -98,10 +101,12 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <FiltersProvider>
-          <NavigationContainer theme={MyTheme}>
-            <StatusBar style="dark" />
-            <RootNavigator />
-          </NavigationContainer>
+          <ToastProvider>
+            <NavigationContainer theme={MyTheme}>
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NavigationContainer>
+          </ToastProvider>
         </FiltersProvider>
       </AuthProvider>
     </SafeAreaProvider>

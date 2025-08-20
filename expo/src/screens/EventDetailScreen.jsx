@@ -20,8 +20,8 @@ function openMap({ lat, lng, label }) {
   }
 }
 
-const ParticipantItem = ({ name, avatar, pacer }) => (
-  <View className="flex-row items-center mr-3 mb-2 bg-white rounded-2xl border border-gray-200 px-3 py-2">
+const ParticipantItem = ({ name, avatar, pacer, onPress }) => (
+  <TouchableOpacity onPress={onPress} className="flex-row items-center mr-3 mb-2 bg-white rounded-2xl border border-gray-200 px-3 py-2">
     {avatar ? (
       <Image source={{ uri: avatar }} style={{ width: 26, height: 26, borderRadius: 13 }} />
     ) : (
@@ -31,10 +31,10 @@ const ParticipantItem = ({ name, avatar, pacer }) => (
     )}
     <Text className="ml-2 text-black">{name || 'Athlet'}</Text>
     {pacer ? <Text className="ml-1">🚀</Text> : null}
-  </View>
+  </TouchableOpacity>
 );
 
-export default function EventDetailScreen({ route }) {
+export default function EventDetailScreen({ route, navigation }) {
   const { id } = route.params || {};
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -133,7 +133,7 @@ export default function EventDetailScreen({ route }) {
           <Text className="text-black font-bold mb-2">Teilnehmer</Text>
           <View className="flex-row flex-wrap">
             {participants.map((p) => (
-              <ParticipantItem key={`${p.user_id}`} name={p.display_name || p.user_id?.slice(0,6)} avatar={p.avatar_url} pacer={!!p.pacer} />
+              <ParticipantItem key={`${p.user_id}`} name={p.display_name || p.user_id?.slice(0,6)} avatar={p.avatar_url} pacer={!!p.pacer} onPress={() => navigation.navigate('UserProfile', { userId: p.user_id })} />
             ))}
           </View>
         </View>

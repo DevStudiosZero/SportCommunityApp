@@ -4,6 +4,7 @@ import { City, Settings } from 'lucide-react-native';
 import EventCard from '../components/EventCard';
 import { listEvents } from '../services/events';
 import { useFilters } from '../state/FiltersContext';
+import { subscribeEvents, subscribeAllParticipants, subscribeAllBoosts } from '../services/realtime';
 
 const Pill = ({ children }) => (
   <View className="ml-2 bg-accent rounded-full px-2 py-0.5">
@@ -31,6 +32,15 @@ export default function Feed({ navigation }) {
 
   useEffect(() => {
     load();
+    // realtime for any changes
+    const offEv = subscribeEvents({ onChange: () => load() });
+    const offPa = subscribeAllParticipants({ onChange: () => load() });
+    const offBo = subscribeAllBoosts({ onChange: () => load() });
+    return () => {
+      offEv?.();
+      offPa?.();
+      offBo?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
 

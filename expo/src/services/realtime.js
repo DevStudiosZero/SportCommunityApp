@@ -26,3 +26,21 @@ export function subscribeBoosts({ onChange, eventId }) {
   channel.subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+export function subscribeAllParticipants({ onChange }) {
+  const channel = supabase.channel('participants-all');
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, (payload) => {
+    onChange?.('participants', payload);
+  });
+  channel.subscribe();
+  return () => supabase.removeChannel(channel);
+}
+
+export function subscribeAllBoosts({ onChange }) {
+  const channel = supabase.channel('boosts-all');
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'boosts' }, (payload) => {
+    onChange?.('boosts', payload);
+  });
+  channel.subscribe();
+  return () => supabase.removeChannel(channel);
+}
