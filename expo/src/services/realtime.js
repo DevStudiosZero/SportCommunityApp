@@ -53,3 +53,12 @@ export function subscribeMessages({ onChange, eventId }) {
   channel.subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+export function subscribeMyIncomingMessages({ userId, onInsert }) {
+  const channel = supabase.channel(`messages-inbox-${userId}`);
+  channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_user_id=eq.${userId}` }, (payload) => {
+    onInsert?.(payload);
+  });
+  channel.subscribe();
+  return () => supabase.removeChannel(channel);
+}

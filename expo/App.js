@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -14,11 +14,15 @@ import Profile from './src/screens/Profile';
 import Matching from './src/screens/Matching';
 import Filters from './src/screens/Filters';
 import UserProfile from './src/screens/UserProfile';
+import Inbox from './src/screens/Inbox';
+import Chat from './src/screens/Chat';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { FiltersProvider } from './src/state/FiltersContext';
-import { ToastProvider } from './src/state/ToastContext';
+import { ToastProvider, useToast } from './src/state/ToastContext';
 import { Colors } from './src/styles/colors';
 import { useAppFonts } from './src/styles/typography';
+import { subscribeMyIncomingMessages } from './src/services/realtime';
+import { supabase } from './src/supabaseClient';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -58,6 +62,30 @@ function Tabs() {
   );
 }
 
+function GlobalRealtimeToasts() {
+  const { show } = useToast();
+  useEffect(() => {
+    let off;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      off = subscribeMyIncomingMessages({
+        userId: user.id,
+        onInsert: (payload) => {
+          const m = payload?.new;
+          if (m?.from_display_name) {
+            show(`Neue Nachricht von ${m.from_display_name}`, 'info');
+          } else {
+            show('Neue Nachricht', 'info');
+          }
+        }
+      });
+    })();
+    return () => off?.();
+  }, [show]);
+  return null;
+}
+
 function RootNavigator() {
   const { session, initializing } = useAuth();
 
@@ -80,6 +108,8 @@ function RootNavigator() {
           <Stack.Screen name="Matching" component={Matching} />
           <Stack.Screen name="Filters" component={Filters} options={{ title: 'Filter' }} />
           <Stack.Screen name="UserProfile" component={UserProfile} options={{ title: 'Profil' }} />
+          <Stack.Screen name="Inbox" component={Inbox} options={{ title: 'Nachrichten' }} />
+          <Stack.Screen name="Chat" component={Chat} options={{ title: 'Chat' }} />
         </>
       )}
     </Stack.Navigator>
@@ -104,6 +134,7 @@ export default function App() {
           <ToastProvider>
             <NavigationContainer theme={MyTheme}>
               <StatusBar style="dark" />
+              <GlobalRealtimeToasts />
               <RootNavigator />
             </NavigationContainer>
           </ToastProvider>
