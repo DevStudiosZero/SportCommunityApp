@@ -4,7 +4,8 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { useFilters } from '../state/FiltersContext';
 
-const SPORT_OPTIONS = ['Laufen', 'Rad', 'Schwimmen', 'Kraft'];
+const SPORT_OPTIONS = ['Laufen', 'Rad', 'Schwimmen', 'Kraft', 'Tennis'];
+const LEVEL_OPTIONS = ['Anfänger', 'Fortgeschritten', 'Pro'];
 
 function toISODateOrNull(s) {
   if (!s) return null;
@@ -17,29 +18,33 @@ export default function Filters({ navigation }) {
   const { filters, applyFilters, resetFilters } = useFilters();
   const [city, setCity] = useState(filters.city || '');
   const [sports, setSports] = useState(filters.sports || []);
+  const [levels, setLevels] = useState(filters.levels || []);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [minDistance, setMinDistance] = useState(filters.minDistance?.toString() || '');
   const [maxDistance, setMaxDistance] = useState(filters.maxDistance?.toString() || '');
 
   useEffect(() => {
-    // Pre-fill date inputs from current ISO values if present
     if (filters.dateFrom) setDateFrom(new Date(filters.dateFrom).toISOString().slice(0, 10));
     if (filters.dateTo) setDateTo(new Date(filters.dateTo).toISOString().slice(0, 10));
   }, []);
 
-  const toggleSport = (s) => {
-    setSports((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
+  const toggle = (arr, setArr, value) => {
+    setArr((prev) => (prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]));
   };
+
+  const showDistance = sports.length === 0 || sports.includes('Laufen') || sports.includes('Rad');
+  const showLevels = sports.includes('Tennis');
 
   const apply = () => {
     const next = {
       city: city || '',
       sports,
+      levels: showLevels ? levels : [],
       dateFrom: toISODateOrNull(dateFrom),
       dateTo: toISODateOrNull(dateTo),
-      minDistance: minDistance ? Number(minDistance) : null,
-      maxDistance: maxDistance ? Number(maxDistance) : null
+      minDistance: showDistance && minDistance ? Number(minDistance) : null,
+      maxDistance: showDistance && maxDistance ? Number(maxDistance) : null
     };
     if (next.minDistance && next.maxDistance && next.minDistance > next.maxDistance) {
       Alert.alert('Fehler', 'Min. Distanz darf nicht größer als Max. Distanz sein.');
@@ -67,13 +72,46 @@ export default function Filters({ navigation }) {
         {SPORT_OPTIONS.map((s) => (
           <TouchableOpacity
             key={s}
-            onPress={() => toggleSport(s)}
+            onPress={() => toggle(sports, setSports, s)}
             className={`px-3 py-2 rounded-full ${sports.includes(s) ? 'bg-accent' : 'bg-white border border-gray-200'}`}
           >
             <Text className={`${sports.includes(s) ? 'text-white' : 'text-black'}`}>{s}</Text>
           </TouchableOpacity>
         ))}
       </View>
+
+      {showLevels && (
+        <>
+          <View className="h-4" />
+          <Text className="text-black mb-2 font-bold">Level (z.B. bei Tennis)</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {LEVEL_OPTIONS.map((l) => (
+              <TouchableOpacity
+                key={l}
+                onPress={() => toggle(levels, setLevels, l)}
+                className={`px-3 py-2 rounded-full ${levels.includes(l) ? 'bg-accent' : 'bg-white border border-gray-200'}`}
+              >
+                <Text className={`${levels.includes(l) ? 'text-white' : 'text-black'}`}>{l}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
+
+      {showDistance && (
+        <>
+          <View className="h-4" />
+          <Text className="text-black mb-2 font-bold">Distanz (km)</Text>
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Input placeholder="min" keyboardType="numeric" value={minDistance} onChangeText={setMinDistance} />
+            </View>
+            <View className="flex-1">
+              <Input placeholder="max" keyboardType="numeric" value={maxDistance} onChangeText={setMaxDistance} />
+            </View>
+          </View>
+        </>
+      )}
 
       <View className="h-4" />
       <Text className="text-black mb-2 font-bold">Datum</Text>
@@ -83,17 +121,6 @@ export default function Filters({ navigation }) {
         </View>
         <View className="flex-1">
           <Input placeholder="bis (YYYY-MM-DD)" value={dateTo} onChangeText={setDateTo} />
-        </View>
-      </View>
-
-      <View className="h-4" />
-      <Text className="text-black mb-2 font-bold">Distanz (km)</Text>
-      <View className="flex-row gap-3">
-        <View className="flex-1">
-          <Input placeholder="min" keyboardType="numeric" value={minDistance} onChangeText={setMinDistance} />
-        </View>
-        <View className="flex-1">
-          <Input placeholder="max" keyboardType="numeric" value={maxDistance} onChangeText={setMaxDistance} />
         </View>
       </View>
 

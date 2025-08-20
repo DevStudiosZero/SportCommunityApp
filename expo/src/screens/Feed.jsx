@@ -37,6 +37,7 @@ export default function Feed({ navigation }) {
   const activeFiltersCount = [
     filters.city,
     (filters.sports || []).length > 0 ? 'sports' : '',
+    (filters.levels || []).length > 0 ? 'levels' : '',
     filters.dateFrom,
     filters.dateTo,
     filters.minDistance,

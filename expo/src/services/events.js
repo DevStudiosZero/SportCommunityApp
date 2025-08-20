@@ -5,21 +5,31 @@ async function getCurrentUserId() {
   return user?.id || null;
 }
 
+const DISTANCE_SPORTS = ['Laufen', 'Rad'];
+
 export async function listEvents(filters = {}) {
-  const { city, sports, dateFrom, dateTo, minDistance, maxDistance } = filters;
+  const { city, sports, dateFrom, dateTo, minDistance, maxDistance, levels } = filters;
 
   let query = supabase.from('events').select('*').order('date', { ascending: true });
   if (city) query = query.eq('city', city);
   if (Array.isArray(sports) && sports.length > 0) query = query.in('sport', sports);
   if (dateFrom) query = query.gte('date', dateFrom);
   if (dateTo) query = query.lte('date', dateTo);
-  if (typeof minDistance === 'number') query = query.gte('distance_km', minDistance);
-  if (typeof maxDistance === 'number') query = query.lte('distance_km', maxDistance);
+  
+  const allowDistance = !sports || sports.length === 0 || sports.some((s) => DISTANCE_SPORTS.includes(s));
+  if (allowDistance) {
+    if (typeof minDistance === 'number') query = query.gte('distance_km', minDistance);
+    if (typeof maxDistance === 'number') query = query.lte('distance_km', maxDistance);
+  }
+
+  if (Array.isArray(levels) && levels.length > 0) {
+    // Will match events that have a matching level (e.g., for Tennis)
+    query = query.in('level', levels);
+  }
 
   const { data: events, error } = await query;
   if (error) throw error;
 
-  // Fetch participants for listed events to compute counts
   const ids = (events || []).map(e => e.id);
   if (ids.length === 0) return [];
   const { data: parts, error: perr } = await supabase
@@ -60,11 +70,11 @@ function parseDateTime(dateStr, timeStr) {
   }
 }
 
-export async function createEvent({ title, sport, dateStr, timeStr, location_text, distance_km, pace, description, visibility = 'public', city }) {
+export async function createEvent({ title, sport, dateStr, timeStr, location_text, distance_km, pace, description, visibility = 'public', city, level = null }) {
   const host_id = await getCurrentUserId();
   if (!host_id) throw new Error('Nicht eingeloggt');
   const isoDate = parseDateTime(dateStr, timeStr);
-  const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id };
+  const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id, level };
   const { data, error } = await supabase.from('events').insert([payload]).select().single();
   if (error) throw error;
   await supabase.from('participants').upsert({ event_id: data.id, user_id: host_id });

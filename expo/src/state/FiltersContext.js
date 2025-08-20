@@ -4,11 +4,12 @@ const FiltersContext = createContext();
 
 const initialFilters = {
   city: '',
-  sports: [], // array of strings
-  dateFrom: null, // ISO string
-  dateTo: null,   // ISO string
-  minDistance: null, // number
-  maxDistance: null  // number
+  sports: [],
+  dateFrom: null,
+  dateTo: null,
+  minDistance: null,
+  maxDistance: null,
+  levels: [] // e.g. ['Anfänger','Fortgeschritten','Pro']
 };
 
 export function FiltersProvider({ children }) {
