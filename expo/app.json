@@ -21,7 +21,9 @@
         "backgroundColor": "#F2F2F7"
       }
     },
-    "plugins": [],
+    "plugins": [
+      "expo-notifications"
+    ],
     "extra": {
       "eas": {
         "projectId": "00000000-0000-0000-0000-000000000000"

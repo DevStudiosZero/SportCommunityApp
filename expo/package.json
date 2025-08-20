@@ -34,7 +34,8 @@
     "@expo-google-fonts/inter": "^0.2.3",
     "expo-linear-gradient": "~13.0.2",
     "expo-status-bar": "~1.12.1",
-    "expo-image-picker": "~15.0.7"
+    "expo-image-picker": "~15.0.7",
+    "expo-notifications": "~0.29.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

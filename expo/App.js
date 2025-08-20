@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
-import { Home, PlusCircle, UserRound } from 'lucide-react-native';
+import { Home, PlusCircle, UserRound, MessageSquare } from 'lucide-react-native';
 import Onboarding from './src/screens/Onboarding';
 import Feed from './src/screens/Feed';
 import EventDetailScreen from './src/screens/EventDetailScreen';
@@ -19,10 +19,12 @@ import Chat from './src/screens/Chat';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { FiltersProvider } from './src/state/FiltersContext';
 import { ToastProvider, useToast } from './src/state/ToastContext';
+import { UnreadProvider, useUnread } from './src/state/UnreadContext';
 import { Colors } from './src/styles/colors';
 import { useAppFonts } from './src/styles/typography';
 import { subscribeMyIncomingMessages } from './src/services/realtime';
 import { supabase } from './src/supabaseClient';
+import { registerForPushNotificationsAsync } from './src/services/notifications';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -39,6 +41,7 @@ const MyTheme = {
 };
 
 function Tabs() {
+  const { count } = useUnread();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -53,6 +56,11 @@ function Tabs() {
       <Tab.Screen name="CreateEvent" component={CreateEvent} options={{
         title: 'Erstellen',
         tabBarIcon: ({ color, size }) => <PlusCircle color={color} size={size} />
+      }} />
+      <Tab.Screen name="Inbox" component={Inbox} options={{
+        title: 'Nachrichten',
+        tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />,
+        tabBarBadge: count > 0 ? count : undefined
       }} />
       <Tab.Screen name="Profile" component={Profile} options={{
         title: 'Profil',
@@ -83,6 +91,13 @@ function GlobalRealtimeToasts() {
     })();
     return () => off?.();
   }, [show]);
+  return null;
+}
+
+function GlobalPushRegister() {
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
   return null;
 }
 
@@ -132,11 +147,14 @@ export default function App() {
       <AuthProvider>
         <FiltersProvider>
           <ToastProvider>
-            <NavigationContainer theme={MyTheme}>
-              <StatusBar style="dark" />
-              <GlobalRealtimeToasts />
-              <RootNavigator />
-            </NavigationContainer>
+            <UnreadProvider>
+              <NavigationContainer theme={MyTheme}>
+                <StatusBar style="dark" />
+                <GlobalRealtimeToasts />
+                <GlobalPushRegister />
+                <RootNavigator />
+              </NavigationContainer>
+            </UnreadProvider>
           </ToastProvider>
         </FiltersProvider>
       </AuthProvider>
