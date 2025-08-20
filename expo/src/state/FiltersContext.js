@@ -9,7 +9,9 @@ const initialFilters = {
   dateTo: null,
   minDistance: null,
   maxDistance: null,
-  levels: [] // e.g. ['Anfänger','Fortgeschritten','Pro']
+  levels: [],
+  pacerOffered: false, // Events mit mind. einem Pacer
+  pacerWanted: false  // Events, die Pacer suchen (events.pacer_wanted)
 };
 
 export function FiltersProvider({ children }) {

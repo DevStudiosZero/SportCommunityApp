@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, Alert, TouchableOpacity, Linking, Platform, Switch } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, Linking, Platform, Switch, ScrollView } from 'react-native';
 import { getEventById, joinEvent, leaveEvent, setPacer, boostEvent, unboostEvent } from '../services/events';
 
 function openMap({ lat, lng, label }) {
@@ -95,8 +95,14 @@ export default function EventDetailScreen({ route }) {
     }
   };
 
+  const ParticipantChip = ({ id, pacer }) => (
+    <View className={`px-3 py-2 rounded-full mr-2 mb-2 ${pacer ? 'bg-accent' : 'bg-white border border-gray-200'}`}>
+      <Text className={`${pacer ? 'text-white' : 'text-black'}`}>{`${id.slice(0, 6)}${pacer ? ' 🚀' : ''}`}</Text>
+    </View>
+  );
+
   return (
-    <View className="flex-1 bg-background p-4">
+    <ScrollView className="flex-1 bg-background p-4">
       <Text className="text-2xl font-bold text-black mb-1">{event.title}</Text>
       <Text className="text-gray-700 mb-2">{new Date(event.date).toLocaleString()}</Text>
       <Text className="text-gray-700 mb-2">📍 {event.location_text}</Text>
@@ -109,6 +115,17 @@ export default function EventDetailScreen({ route }) {
         <Text className="text-black font-bold">Ich bin Pacer 🚀</Text>
         <Switch value={pacer} onValueChange={togglePacer} />
       </View>
+
+      {participants?.length > 0 && (
+        <View className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
+          <Text className="text-black font-bold mb-2">Teilnehmer</Text>
+          <View className="flex-row flex-wrap">
+            {participants.map((p) => (
+              <ParticipantChip key={`${p.user_id}`} id={p.user_id} pacer={!!p.pacer} />
+            ))}
+          </View>
+        </View>
+      )}
 
       <TouchableOpacity
         onPress={() => openMap({ lat: event.meeting_lat, lng: event.meeting_lng, label: event.location_text })}
@@ -132,6 +149,6 @@ export default function EventDetailScreen({ route }) {
       >
         <Text className={`text-center font-bold ${boostedByMe ? 'text-accent' : 'text-white'}`}>{`Boost 🚀 (${boostsCount || 0})`}</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }

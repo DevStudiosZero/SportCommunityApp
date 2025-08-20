@@ -8,7 +8,7 @@ async function getCurrentUserId() {
 const DISTANCE_SPORTS = ['Laufen', 'Rad', 'Schwimmen'];
 
 export async function listEvents(filters = {}) {
-  const { city, sports, dateFrom, dateTo, minDistance, maxDistance, levels } = filters;
+  const { city, sports, dateFrom, dateTo, minDistance, maxDistance, levels, pacerOffered, pacerWanted } = filters;
 
   let query = supabase.from('events').select('*').order('date', { ascending: true });
   if (city) query = query.eq('city', city);
@@ -26,21 +26,31 @@ export async function listEvents(filters = {}) {
     query = query.in('level', levels);
   }
 
+  if (pacerWanted) {
+    // requires events.pacer_wanted boolean column; if not present, no rows will match
+    query = query.eq('pacer_wanted', true);
+  }
+
   const { data: events, error } = await query;
   if (error) throw error;
 
   const ids = (events || []).map(e => e.id);
   if (ids.length === 0) return [];
-  // Participants counts
+  // Participants (for counts and pacer filter)
   const { data: parts, error: perr } = await supabase
     .from('participants')
-    .select('event_id, user_id')
+    .select('event_id, user_id, pacer')
     .in('event_id', ids);
   if (perr) throw perr;
   const partCounts = (parts || []).reduce((acc, p) => {
     acc[p.event_id] = (acc[p.event_id] || 0) + 1;
     return acc;
   }, {});
+  const pacerMap = (parts || []).reduce((acc, p) => {
+    if (p.pacer) acc[p.event_id] = (acc[p.event_id] || 0) + 1;
+    return acc;
+  }, {});
+
   // Boosts counts
   const { data: boosts, error: berr } = await supabase
     .from('boosts')
@@ -52,7 +62,18 @@ export async function listEvents(filters = {}) {
     return acc;
   }, {});
 
-  return events.map(e => ({ ...e, participantsCount: partCounts[e.id] || 0, boostsCount: boostCounts[e.id] || 0 }));
+  let result = events.map(e => ({ 
+    ...e, 
+    participantsCount: partCounts[e.id] || 0, 
+    boostsCount: boostCounts[e.id] || 0,
+    pacerCount: pacerMap[e.id] || 0
+  }));
+
+  if (pacerOffered) {
+    result = result.filter(e => (e.pacerCount || 0) > 0);
+  }
+
+  return result;
 }
 
 export async function getEventById(id) {
@@ -92,11 +113,11 @@ function parseDateTime(dateStr, timeStr) {
   }
 }
 
-export async function createEvent({ title, sport, dateStr, timeStr, location_text, distance_km, pace, description, visibility = 'public', city, level = null }) {
+export async function createEvent({ title, sport, dateStr, timeStr, location_text, distance_km, pace, description, visibility = 'public', city, level = null, pacer_wanted = false }) {
   const host_id = await getCurrentUserId();
   if (!host_id) throw new Error('Nicht eingeloggt');
   const isoDate = parseDateTime(dateStr, timeStr);
-  const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id, level };
+  const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id, level, pacer_wanted };
   const { data, error } = await supabase.from('events').insert([payload]).select().single();
   if (error) throw error;
   await supabase.from('participants').upsert({ event_id: data.id, user_id: host_id });
@@ -113,7 +134,6 @@ export async function joinEvent(event_id, pacer = false) {
 export async function setPacer(event_id, pacer) {
   const user_id = await getCurrentUserId();
   if (!user_id) throw new Error('Nicht eingeloggt');
-  // upsert will update pacer if row exists
   const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer });
   if (error) throw error;
 }

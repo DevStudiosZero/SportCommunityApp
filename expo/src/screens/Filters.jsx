@@ -23,6 +23,8 @@ export default function Filters({ navigation }) {
   const [dateTo, setDateTo] = useState('');
   const [minDistance, setMinDistance] = useState(filters.minDistance?.toString() || '');
   const [maxDistance, setMaxDistance] = useState(filters.maxDistance?.toString() || '');
+  const [pacerOffered, setPacerOffered] = useState(!!filters.pacerOffered);
+  const [pacerWanted, setPacerWanted] = useState(!!filters.pacerWanted);
 
   useEffect(() => {
     if (filters.dateFrom) setDateFrom(new Date(filters.dateFrom).toISOString().slice(0, 10));
@@ -44,7 +46,9 @@ export default function Filters({ navigation }) {
       dateFrom: toISODateOrNull(dateFrom),
       dateTo: toISODateOrNull(dateTo),
       minDistance: showDistance && minDistance ? Number(minDistance) : null,
-      maxDistance: showDistance && maxDistance ? Number(maxDistance) : null
+      maxDistance: showDistance && maxDistance ? Number(maxDistance) : null,
+      pacerOffered,
+      pacerWanted
     };
     if (next.minDistance && next.maxDistance && next.minDistance > next.maxDistance) {
       Alert.alert('Fehler', 'Min. Distanz darf nicht größer als Max. Distanz sein.');
@@ -58,6 +62,12 @@ export default function Filters({ navigation }) {
     resetFilters();
     navigation.goBack();
   };
+
+  const FilterChip = ({ active, label, onPress }) => (
+    <TouchableOpacity onPress={onPress} className={`px-3 py-2 rounded-full ${active ? 'bg-accent' : 'bg-white border border-gray-200'}`}>
+      <Text className={`${active ? 'text-white' : 'text-black'}`}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View className="flex-1 bg-background p-4">
@@ -112,6 +122,13 @@ export default function Filters({ navigation }) {
           </View>
         </>
       )}
+
+      <View className="h-4" />
+      <Text className="text-black mb-2 font-bold">Pacer</Text>
+      <View className="flex-row flex-wrap gap-2">
+        <FilterChip active={pacerOffered} label="Pacer angeboten 🚀" onPress={() => setPacerOffered(!pacerOffered)} />
+        <FilterChip active={pacerWanted} label="Pacer gesucht" onPress={() => setPacerWanted(!pacerWanted)} />
+      </View>
 
       <View className="h-4" />
       <Text className="text-black mb-2 font-bold">Datum</Text>

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, Switch } from 'react-native';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { createEvent } from '../services/events';
 
 const LEVEL_OPTIONS = ['Anfänger', 'Fortgeschritten', 'Pro'];
+const SPORT_OPTIONS = ['Laufen', 'Rad', 'Schwimmen', 'Kraft', 'Tennis', 'Volleyball', 'Padel'];
 
 export default function CreateEvent({ navigation }) {
   const [title, setTitle] = useState('');
@@ -17,6 +18,7 @@ export default function CreateEvent({ navigation }) {
   const [pace, setPace] = useState('');
   const [description, setDescription] = useState('');
   const [level, setLevel] = useState('');
+  const [pacerWanted, setPacerWanted] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const isTennis = useMemo(() => sport.trim().toLowerCase() === 'tennis', [sport]);
@@ -47,7 +49,8 @@ export default function CreateEvent({ navigation }) {
         description: description || null,
         visibility: 'public',
         city: city || null,
-        level: isTennis ? level : null
+        level: isTennis ? level : null,
+        pacer_wanted: pacerWanted
       });
       Alert.alert('Erstellt', 'Event wurde erstellt.');
       navigation.navigate('EventDetail', { id: row.id });
@@ -58,12 +61,24 @@ export default function CreateEvent({ navigation }) {
     }
   };
 
+  const Chip = ({ active, label, onPress }) => (
+    <TouchableOpacity onPress={onPress} className={`px-3 py-2 rounded-full ${active ? 'bg-accent' : 'bg-white border border-gray-200'}`}>
+      <Text className={`${active ? 'text-white' : 'text-black'}`}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View className="flex-1 bg-background p-4">
       <Text className="text-2xl font-bold text-black mb-4">Event erstellen</Text>
       <Input placeholder="Titel" value={title} onChangeText={setTitle} />
+
       <View className="h-3" />
-      <Input placeholder="Sportart (z.B. Laufen, Tennis, Schwimmen)" value={sport} onChangeText={setSport} />
+      <Text className="text-black mb-2 font-bold">Sportart</Text>
+      <View className="flex-row flex-wrap gap-2">
+        {SPORT_OPTIONS.map((s) => (
+          <Chip key={s} label={s} active={sport === s} onPress={() => setSport(s)} />
+        ))}
+      </View>
 
       {isTennis && (
         <>
@@ -71,13 +86,7 @@ export default function CreateEvent({ navigation }) {
           <Text className="text-black mb-2 font-bold">Level</Text>
           <View className="flex-row flex-wrap gap-2">
             {LEVEL_OPTIONS.map((l) => (
-              <TouchableOpacity
-                key={l}
-                onPress={() => setLevel(l)}
-                className={`px-3 py-2 rounded-full ${level === l ? 'bg-accent' : 'bg-white border border-gray-200'}`}
-              >
-                <Text className={`${level === l ? 'text-white' : 'text-black'}`}>{l}</Text>
-              </TouchableOpacity>
+              <Chip key={l} label={l} active={level === l} onPress={() => setLevel(l)} />
             ))}
           </View>
         </>
@@ -102,7 +111,14 @@ export default function CreateEvent({ navigation }) {
       )}
 
       <View className="h-3" />
+      <View className="flex-row items-center justify-between bg-white rounded-2xl border border-gray-200 py-3 px-4">
+        <Text className="text-black font-bold">Pacer gesucht</Text>
+        <Switch value={pacerWanted} onValueChange={setPacerWanted} />
+      </View>
+
+      <View className="h-3" />
       <Input placeholder="Beschreibung (optional)" value={description} onChangeText={setDescription} />
+
       <View className="h-6" />
       <Button title={busy ? 'Erstelle…' : 'Erstellen'} onPress={onCreate} disabled={busy} />
     </View>
