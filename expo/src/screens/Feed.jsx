@@ -69,16 +69,21 @@ export default function Feed({ navigation }) {
           <Text className="text-gray-600">Keine Events gefunden.</Text>
         )}
         {events.map((e) => (
-          <EventCard key={e.id} event={{
-            id: e.id,
-            title: e.title,
-            location: e.location_text,
-            date: new Date(e.date).toLocaleDateString(),
-            time: new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            participants: e.participantsCount,
-            distance: e.distance_km,
-            pace: e.pace
-          }} onPress={() => navigation.navigate('EventDetail', { id: e.id })} />
+          <EventCard
+            key={e.id}
+            event={{
+              id: e.id,
+              title: e.title,
+              location: e.location_text,
+              date: new Date(e.date).toLocaleDateString(),
+              time: new Date(e.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              participants: e.participantsCount,
+              boostsCount: e.boostsCount,
+              distance: e.distance_km,
+              pace: e.pace
+            }}
+            onPress={() => navigation.navigate('EventDetail', { id: e.id })}
+          />
         ))}
       </ScrollView>
     </View>
