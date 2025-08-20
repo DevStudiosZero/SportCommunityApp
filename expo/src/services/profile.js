@@ -51,10 +51,21 @@ export async function uploadAvatar(uri) {
   return { url: data.publicUrl, path };
 }
 
-export async function savePushToken(token) {
+export async function updatePushToken(tokenOrNull) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !token) return;
-  await supabase.from('profiles').upsert({ id: user.id, expo_push_token: token }, { onConflict: 'id' });
+  if (!user) return;
+  await supabase.from('profiles').upsert({ id: user.id, expo_push_token: tokenOrNull || null }, { onConflict: 'id' });
+}
+
+export async function savePushToken(token) {
+  // Backwards compatibility wrapper
+  return updatePushToken(token);
+}
+
+export async function setPushEnabled(enabled) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from('profiles').upsert({ id: user.id, push_enabled: !!enabled }, { onConflict: 'id' });
 }
 
 export async function getHostBoosts() {

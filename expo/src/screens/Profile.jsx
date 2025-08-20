@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Switch } from 'react-native';
 import { supabase } from '../supabaseClient';
 import Input from '../components/Input';
 import Button from '../components/Button';
-import { getProfile, upsertProfile, getHostBoosts } from '../services/profile';
+import { getProfile, upsertProfile, getHostBoosts, setPushEnabled } from '../services/profile';
 import { Rocket } from 'lucide-react-native';
 import AvatarPicker from '../components/AvatarPicker';
 import { useToast } from '../state/ToastContext';
+import { ensurePushPreferenceRespected, unregisterPushNotifications } from '../services/notifications';
 
 const SPORT_OPTIONS = ['🏃 Laufen', '🚴 Rad', '🏊 Schwimmen', '🏋️ Kraft', '🏐 Volleyball', '🎾 Padel'];
 
@@ -15,6 +16,7 @@ export default function Profile() {
   const [sports, setSports] = useState([]);
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [pushEnabled, setPushEnabledState] = useState(true);
   const [boosts, setBoosts] = useState({ total: 0, byEvent: [] });
   const { show } = useToast();
 
@@ -26,6 +28,7 @@ export default function Profile() {
         setSports(p.sports || []);
         setFullName(p.full_name || '');
         setAvatarUrl(p.avatar_url || '');
+        setPushEnabledState(p.push_enabled !== false);
       }
       try {
         const b = await getHostBoosts();
@@ -49,6 +52,22 @@ export default function Profile() {
     }
   };
 
+  const togglePush = async (value) => {
+    try {
+      setPushEnabledState(value);
+      await setPushEnabled(value);
+      if (value) {
+        await ensurePushPreferenceRespected();
+        show('Push-Benachrichtigungen aktiviert', 'success');
+      } else {
+        await unregisterPushNotifications();
+        show('Push-Benachrichtigungen deaktiviert', 'success');
+      }
+    } catch (e) {
+      show('Konnte Einstellung nicht speichern', 'error');
+    }
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     show('Abgemeldet', 'success');
@@ -69,6 +88,12 @@ export default function Profile() {
       <Input placeholder="z.B. Kassel" value={city} onChangeText={setCity} />
 
       <View className="h-4" />
+      <Text className="text-black mb-2 font-bold">Push-Benachrichtigungen</Text>
+      <View className="bg-white rounded-2xl border border-gray-200 p-4 mb-4 flex-row justify-between items-center">
+        <Text className="text-black font-bold">Aktiviert</Text>
+        <Switch value={pushEnabled} onValueChange={togglePush} />
+      </View>
+
       <Text className="text-black mb-2 font-bold">Meine Sportarten</Text>
       <View className="flex-row flex-wrap gap-2">
         {SPORT_OPTIONS.map((s) => (
@@ -97,7 +122,6 @@ export default function Profile() {
             <View key={e.event_id} className="flex-row justify-between items-center py-2 border-b border-gray-100">
               <Text className="text-black flex-1 pr-2">{e.title}</Text>
               <View className="flex-row items-center">
-                <Rocket color="#FE0100" size={16} />
                 <Text className="ml-1 text-accent font-bold">{e.count}</Text>
               </View>
             </View>

@@ -24,7 +24,8 @@ import { Colors } from './src/styles/colors';
 import { useAppFonts } from './src/styles/typography';
 import { subscribeMyIncomingMessages } from './src/services/realtime';
 import { supabase } from './src/supabaseClient';
-import { registerForPushNotificationsAsync } from './src/services/notifications';
+import { ensurePushPreferenceRespected } from './src/services/notifications';
+import { getProfile } from './src/services/profile';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -81,6 +82,7 @@ function GlobalRealtimeToasts() {
         userId: user.id,
         onInsert: (payload) => {
           const m = payload?.new;
+          // Optional: check local push preference; we still show in-app toast
           if (m?.from_display_name) {
             show(`Neue Nachricht von ${m.from_display_name}`, 'info');
           } else {
@@ -96,7 +98,15 @@ function GlobalRealtimeToasts() {
 
 function GlobalPushRegister() {
   useEffect(() => {
-    registerForPushNotificationsAsync();
+    (async () => {
+      const profile = await getProfile();
+      if (profile?.push_enabled === false) {
+        // ensure token cleared if user disabled push
+        await ensurePushPreferenceRespected();
+      } else {
+        await ensurePushPreferenceRespected();
+      }
+    })();
   }, []);
   return null;
 }

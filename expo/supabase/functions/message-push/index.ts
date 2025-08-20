@@ -49,17 +49,18 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, msg: "self message ignored" }), { status: 200 });
     }
 
-    // Fetch recipient push token
+    // Fetch recipient push preference & token
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("expo_push_token")
+      .select("expo_push_token, push_enabled")
       .eq("id", row.to_user_id)
       .maybeSingle();
     if (error) throw error;
 
-    const token = profile?.expo_push_token as string | undefined;
-    if (!token) {
-      return new Response(JSON.stringify({ ok: true, msg: "no token" }), { status: 200 });
+    const enabled = profile?.push_enabled !== false;
+    const token = enabled ? (profile?.expo_push_token as string | undefined) : undefined;
+    if (!enabled || !token) {
+      return new Response(JSON.stringify({ ok: true, msg: "push disabled or no token" }), { status: 200 });
     }
 
     const senderName: string = row.from_display_name ?? "Athlet";

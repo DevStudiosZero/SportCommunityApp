@@ -1,7 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { savePushToken } from './profile';
+import { savePushToken, updatePushToken, getProfile } from './profile';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -31,6 +31,7 @@ export async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
+      await updatePushToken(null);
       return null;
     }
     token = (await Notifications.getExpoPushTokenAsync()).data;
@@ -38,6 +39,21 @@ export async function registerForPushNotificationsAsync() {
   }
 
   return token;
+}
+
+export async function unregisterPushNotifications() {
+  try {
+    await updatePushToken(null);
+  } catch {}
+}
+
+export async function ensurePushPreferenceRespected() {
+  const profile = await getProfile();
+  if (profile?.push_enabled === false) {
+    await unregisterPushNotifications();
+    return null;
+  }
+  return registerForPushNotificationsAsync();
 }
 
 export async function sendPushToExpoToken(token, title, body) {
