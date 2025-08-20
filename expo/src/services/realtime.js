@@ -44,3 +44,12 @@ export function subscribeAllBoosts({ onChange }) {
   channel.subscribe();
   return () => supabase.removeChannel(channel);
 }
+
+export function subscribeMessages({ onChange, eventId }) {
+  const channel = supabase.channel(`messages-${eventId}`);
+  channel.on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `event_id=eq.${eventId}` }, (payload) => {
+    onChange?.('messages', payload);
+  });
+  channel.subscribe();
+  return () => supabase.removeChannel(channel);
+}
