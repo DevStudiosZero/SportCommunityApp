@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
-import { listMessagesForConversation, sendMessage } from '../services/messages';
+import { listMessagesForConversation, sendMessage, markConversationAsRead } from '../services/messages';
 import { subscribeMessages } from '../services/realtime';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../state/ToastContext';
@@ -22,13 +22,22 @@ export default function Chat({ route }) {
   const [list, setList] = useState([]);
   const [text, setText] = useState('');
   const [me, setMe] = useState(null);
+  const [cursor, setCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const { show } = useToast();
   const scrollRef = useRef(null);
 
-  const load = async () => {
-    const rows = await listMessagesForConversation(eventId, withUserId);
-    setList(rows);
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+  const load = async (initial = false) => {
+    const { rows, nextCursor } = await listMessagesForConversation(eventId, withUserId, { limit: 30, before: initial ? null : cursor });
+    if (initial) {
+      setList(rows);
+      setCursor(nextCursor);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 50);
+    } else {
+      setList((prev) => [...rows, ...prev]);
+      setCursor(nextCursor);
+    }
+    await markConversationAsRead(eventId, withUserId);
   };
 
   useEffect(() => {
@@ -39,8 +48,12 @@ export default function Chat({ route }) {
   }, []);
 
   useEffect(() => {
-    load();
-    const off = subscribeMessages({ eventId, onChange: () => load() });
+    (async () => {
+      await load(true);
+    })();
+    const off = subscribeMessages({ eventId, onChange: async () => {
+      await load(true);
+    }});
     return () => off?.();
   }, [eventId, withUserId]);
 
@@ -49,8 +62,19 @@ export default function Chat({ route }) {
       await sendMessage(eventId, text, withUserId);
       setText('');
       show('Gesendet', 'success');
+      await markConversationAsRead(eventId, withUserId);
     } catch (e) {
       show(e.message || 'Fehler beim Senden', 'error');
+    }
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !cursor) return;
+    setLoadingMore(true);
+    try {
+      await load(false);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -58,7 +82,11 @@ export default function Chat({ route }) {
     <View className="flex-1 bg-background p-4">
       <Text className="text-xl font-bold text-black mb-2">{withName || 'Chat'}</Text>
       {eventTitle ? <Text className="text-gray-600 mb-2">Event: {eventTitle}</Text> : null}
-      <ScrollView ref={scrollRef} className="flex-1 mb-3">
+
+      <ScrollView ref={scrollRef} className="flex-1 mb-3" onScrollBeginDrag={() => {}}>
+        <TouchableOpacity onPress={loadMore} disabled={!cursor} className={`self-center mb-3 rounded-full px-4 py-2 ${cursor ? 'bg-white border border-gray-200' : 'bg-gray-200'}`}>
+          <Text className="text-black font-bold">{cursor ? 'Mehr laden' : 'Alle geladen'}</Text>
+        </TouchableOpacity>
         {list.map((m) => (
           <Bubble key={m.id} isOwn={me?.id === m.from_user_id} name={m.from_display_name} content={m.content} created_at={m.created_at} />
         ))}

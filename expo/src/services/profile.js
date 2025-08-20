@@ -51,6 +51,12 @@ export async function uploadAvatar(uri) {
   return { url: data.publicUrl, path };
 }
 
+export async function savePushToken(token) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !token) return;
+  await supabase.from('profiles').upsert({ id: user.id, expo_push_token: token }, { onConflict: 'id' });
+}
+
 export async function getHostBoosts() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { total: 0, byEvent: [] };

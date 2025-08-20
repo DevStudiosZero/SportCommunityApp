@@ -21,35 +21,40 @@ export async function listMessages(event_id) {
   if (!user) return [];
   const { data, error } = await supabase
     .from('messages')
-    .select('id, event_id, from_user_id, to_user_id, content, created_at, from_display_name, from_avatar_url')
+    .select('id, event_id, from_user_id, to_user_id, content, created_at, from_display_name, from_avatar_url, read_at')
     .eq('event_id', event_id)
     .order('created_at', { ascending: true });
   if (error) throw error;
   return data || [];
 }
 
-export async function listMessagesForConversation(event_id, other_user_id) {
+export async function listMessagesForConversation(event_id, other_user_id, { limit = 30, before = null } = {}) {
   const me = await getCurrentUser();
   if (!me) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from('messages')
-    .select('id, event_id, from_user_id, to_user_id, content, created_at, from_display_name, from_avatar_url')
+    .select('id, event_id, from_user_id, to_user_id, content, created_at, from_display_name, from_avatar_url, read_at')
     .eq('event_id', event_id)
     .or(`and(from_user_id.eq.${me.id},to_user_id.eq.${other_user_id}),and(from_user_id.eq.${other_user_id},to_user_id.eq.${me.id})`)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (before) query = query.lt('created_at', before);
+  const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  const rows = (data || []).reverse();
+  const nextCursor = rows.length > 0 ? rows[0].created_at : null;
+  return { rows, nextCursor };
 }
 
-export async function listConversations() {
+export async function listConversations({ limit = 20, offset = 0 } = {}) {
   const me = await getCurrentUser();
   if (!me) return [];
   const { data: msgs, error } = await supabase
     .from('messages')
     .select('id, event_id, from_user_id, to_user_id, content, created_at, from_display_name, from_avatar_url')
-    .or(`from_user_id.eq.${me.id},to_user_id.eq.${me.id})`)
+    .or(`from_user_id.eq.${me.id},to_user_id.eq.${me.id}`)
     .order('created_at', { ascending: false })
-    .limit(300);
+    .range(offset, offset + 199);
   if (error) throw error;
   const conversationsMap = new Map();
   const partnerIds = new Set();
@@ -61,6 +66,7 @@ export async function listConversations() {
       conversationsMap.set(key, { key, event_id: m.event_id, with_user_id: other, last: m });
       partnerIds.add(other);
       eventIds.add(m.event_id);
+      if (conversationsMap.size >= limit) break;
     }
   }
   const partners = partnerIds.size > 0
@@ -107,4 +113,16 @@ export async function sendMessage(event_id, content, to_user_idOverride = null) 
 
   const { error } = await supabase.from('messages').insert(payload);
   if (error) throw error;
+}
+
+export async function markConversationAsRead(event_id, other_user_id) {
+  const me = await getCurrentUser();
+  if (!me) return;
+  await supabase
+    .from('messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('event_id', event_id)
+    .eq('to_user_id', me.id)
+    .eq('from_user_id', other_user_id)
+    .is('read_at', null);
 }
