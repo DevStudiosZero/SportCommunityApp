@@ -4,7 +4,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { useFilters } from '../state/FiltersContext';
 
-const SPORT_OPTIONS = ['Laufen', 'Rad', 'Schwimmen', 'Kraft', 'Tennis'];
+const SPORT_OPTIONS = ['Laufen', 'Rad', 'Schwimmen', 'Kraft', 'Tennis', 'Volleyball', 'Padel'];
 const LEVEL_OPTIONS = ['Anfänger', 'Fortgeschritten', 'Pro'];
 
 function toISODateOrNull(s) {
@@ -33,7 +33,7 @@ export default function Filters({ navigation }) {
     setArr((prev) => (prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value]));
   };
 
-  const showDistance = sports.length === 0 || sports.includes('Laufen') || sports.includes('Rad');
+  const showDistance = sports.length === 0 || sports.includes('Laufen') || sports.includes('Rad') || sports.includes('Schwimmen');
   const showLevels = sports.includes('Tennis');
 
   const apply = () => {
@@ -80,7 +80,7 @@ export default function Filters({ navigation }) {
         ))}
       </View>
 
-      {showLevels && (
+      {sports.includes('Tennis') && (
         <>
           <View className="h-4" />
           <Text className="text-black mb-2 font-bold">Level (z.B. bei Tennis)</Text>

@@ -5,7 +5,7 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import { getProfile, upsertProfile } from '../services/profile';
 
-const SPORT_OPTIONS = ['🏃 Laufen', '🚴 Rad', '🏊 Schwimmen', '🏋️ Kraft'];
+const SPORT_OPTIONS = ['🏃 Laufen', '🚴 Rad', '🏊 Schwimmen', '🏋️ Kraft', '🏐 Volleyball', '🎾 Padel'];
 
 export default function Profile() {
   const [city, setCity] = useState('');

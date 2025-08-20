@@ -5,9 +5,9 @@ import Input from '../components/Input';
 import { supabase } from '../supabaseClient';
 import { upsertProfile } from '../services/profile';
 
-const SPORT_OPTIONS = ['🏃 Laufen', '🚴 Rad', '🏊 Schwimmen', '🏋️ Kraft'];
+const SPORT_OPTIONS = ['🏃 Laufen', '🚴 Rad', '🏊 Schwimmen', '🏋️ Kraft', '🏐 Volleyball', '🎾 Padel'];
 
-export default function Onboarding({ navigation }) {
+export default function Onboarding() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [city, setCity] = useState('');
@@ -23,7 +23,6 @@ export default function Onboarding({ navigation }) {
         await upsertProfile({ city, sports });
       }
     } catch (e) {
-      // Non-blocking
       console.log('Profil speichern fehlgeschlagen', e.message);
     }
   };

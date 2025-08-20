@@ -5,7 +5,7 @@ async function getCurrentUserId() {
   return user?.id || null;
 }
 
-const DISTANCE_SPORTS = ['Laufen', 'Rad'];
+const DISTANCE_SPORTS = ['Laufen', 'Rad', 'Schwimmen'];
 
 export async function listEvents(filters = {}) {
   const { city, sports, dateFrom, dateTo, minDistance, maxDistance, levels } = filters;
@@ -23,7 +23,6 @@ export async function listEvents(filters = {}) {
   }
 
   if (Array.isArray(levels) && levels.length > 0) {
-    // Will match events that have a matching level (e.g., for Tennis)
     query = query.in('level', levels);
   }
 

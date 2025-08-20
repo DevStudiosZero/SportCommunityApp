@@ -21,8 +21,8 @@ export default function CreateEvent({ navigation }) {
 
   const isTennis = useMemo(() => sport.trim().toLowerCase() === 'tennis', [sport]);
   const showDistance = useMemo(() => {
-    const s = sport.trim();
-    return s === 'Laufen' || s === 'Rad' || s.toLowerCase() === 'laufen' || s.toLowerCase() === 'rad';
+    const s = sport.trim().toLowerCase();
+    return s === 'laufen' || s === 'rad' || s === 'schwimmen';
   }, [sport]);
 
   const onCreate = async () => {
@@ -63,7 +63,7 @@ export default function CreateEvent({ navigation }) {
       <Text className="text-2xl font-bold text-black mb-4">Event erstellen</Text>
       <Input placeholder="Titel" value={title} onChangeText={setTitle} />
       <View className="h-3" />
-      <Input placeholder="Sportart (z.B. Laufen, Tennis)" value={sport} onChangeText={setSport} />
+      <Input placeholder="Sportart (z.B. Laufen, Tennis, Schwimmen)" value={sport} onChangeText={setSport} />
 
       {isTennis && (
         <>
