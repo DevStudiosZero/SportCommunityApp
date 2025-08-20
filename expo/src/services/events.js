@@ -102,13 +102,19 @@ export async function getEventById(id) {
     .eq('event_id', id);
   if (berr) throw berr;
 
-  const userId = await getCurrentUserId();
+  const { data: hostProfile } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url')
+    .eq('id', event.host_id)
+    .maybeSingle();
+
+  const userId = (await supabase.auth.getUser()).data.user?.id;
   const joined = !!parts?.find(p => p.user_id === userId);
   const boostedByMe = !!boosts?.find(b => b.user_id === userId);
   const boostsCount = (boosts || []).length;
   const myPacer = !!parts?.find(p => p.user_id === userId && p.pacer);
 
-  return { event, participants: parts || [], joined, boostedByMe, boostsCount, myPacer };
+  return { event: { ...event, host_profile: hostProfile || null }, participants: parts || [], joined, boostedByMe, boostsCount, myPacer };
 }
 
 function parseDateTime(dateStr, timeStr) {
@@ -124,11 +130,11 @@ function parseDateTime(dateStr, timeStr) {
   }
 }
 
-export async function createEvent({ title, sport, dateStr, timeStr, location_text, distance_km, pace, description, visibility = 'public', city, level = null, pacer_wanted = false }) {
+export async function createEvent({ title, sport, dateStr, timeStr, location_text, distance_km, pace, description, visibility = 'public', city, level = null, pacer_wanted = false, meeting_lat = null, meeting_lng = null }) {
   const host_id = await getCurrentUserId();
   if (!host_id) throw new Error('Nicht eingeloggt');
   const isoDate = parseDateTime(dateStr, timeStr);
-  const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id, level, pacer_wanted };
+  const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id, level, pacer_wanted, meeting_lat, meeting_lng };
   const { data, error } = await supabase.from('events').insert([payload]).select().single();
   if (error) throw error;
   const me = await getMyDisplayInfo();
@@ -137,7 +143,8 @@ export async function createEvent({ title, sport, dateStr, timeStr, location_tex
 }
 
 export async function joinEvent(event_id, pacer = false) {
-  const user_id = await getCurrentUserId();
+  const { data: { user } } = await supabase.auth.getUser();
+  const user_id = user?.id;
   if (!user_id) throw new Error('Nicht eingeloggt');
   const me = await getMyDisplayInfo();
   const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer, display_name: me.display_name, avatar_url: me.avatar_url });
@@ -145,7 +152,8 @@ export async function joinEvent(event_id, pacer = false) {
 }
 
 export async function setPacer(event_id, pacer) {
-  const user_id = await getCurrentUserId();
+  const { data: { user } } = await supabase.auth.getUser();
+  const user_id = user?.id;
   if (!user_id) throw new Error('Nicht eingeloggt');
   const me = await getMyDisplayInfo();
   const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer, display_name: me.display_name, avatar_url: me.avatar_url });
@@ -153,21 +161,24 @@ export async function setPacer(event_id, pacer) {
 }
 
 export async function leaveEvent(event_id) {
-  const user_id = await getCurrentUserId();
+  const { data: { user } } = await supabase.auth.getUser();
+  const user_id = user?.id;
   if (!user_id) throw new Error('Nicht eingeloggt');
   const { error } = await supabase.from('participants').delete().match({ event_id, user_id });
   if (error) throw error;
 }
 
 export async function boostEvent(event_id) {
-  const user_id = await getCurrentUserId();
+  const { data: { user } } = await supabase.auth.getUser();
+  const user_id = user?.id;
   if (!user_id) throw new Error('Nicht eingeloggt');
   const { error } = await supabase.from('boosts').insert({ event_id, user_id });
   if (error) throw error;
 }
 
 export async function unboostEvent(event_id) {
-  const user_id = await getCurrentUserId();
+  const { data: { user } } = await supabase.auth.getUser();
+  const user_id = user?.id;
   if (!user_id) throw new Error('Nicht eingeloggt');
   const { error } = await supabase.from('boosts').delete().match({ event_id, user_id });
   if (error) throw error;

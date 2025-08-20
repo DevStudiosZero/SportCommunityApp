@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Alert, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, Alert, TouchableOpacity } from 'react-native';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { createEvent } from '../services/events';
@@ -14,6 +14,7 @@ export default function CreateEvent({ navigation }) {
   const [timeStr, setTimeStr] = useState('');
   const [city, setCity] = useState('');
   const [locationText, setLocationText] = useState('');
+  const [meeting, setMeeting] = useState(null); // {latitude, longitude}
   const [distance, setDistance] = useState('');
   const [pace, setPace] = useState('');
   const [description, setDescription] = useState('');
@@ -26,6 +27,13 @@ export default function CreateEvent({ navigation }) {
     const s = sport.trim().toLowerCase();
     return s === 'laufen' || s === 'rad' || s === 'schwimmen';
   }, [sport]);
+
+  const onPickMap = () => {
+    navigation.navigate('MapPicker', {
+      initial: meeting,
+      onPick: (coord) => setMeeting(coord)
+    });
+  };
 
   const onCreate = async () => {
     if (!title || !sport || !dateStr || !timeStr || !locationText) {
@@ -50,7 +58,9 @@ export default function CreateEvent({ navigation }) {
         visibility: 'public',
         city: city || null,
         level: isTennis ? level : null,
-        pacer_wanted: pacerWanted
+        pacer_wanted: pacerWanted,
+        meeting_lat: meeting?.latitude || null,
+        meeting_lng: meeting?.longitude || null
       });
       Alert.alert('Erstellt', 'Event wurde erstellt.');
       navigation.navigate('EventDetail', { id: row.id });
@@ -101,6 +111,14 @@ export default function CreateEvent({ navigation }) {
       <View className="h-3" />
       <Input placeholder="Treffpunkt (z.B. Kassel Aue)" value={locationText} onChangeText={setLocationText} />
 
+      <View className="h-3" />
+      <TouchableOpacity onPress={onPickMap} className="bg-white rounded-2xl border border-gray-200 py-3 px-4">
+        <Text className="text-black font-bold">Treffpunkt auf Karte wählen</Text>
+        {meeting && (
+          <Text className="text-gray-600 mt-1">Lat: {meeting.latitude.toFixed(5)}, Lng: {meeting.longitude.toFixed(5)}</Text>
+        )}
+      </TouchableOpacity>
+
       {showDistance && (
         <>
           <View className="h-3" />
@@ -109,12 +127,6 @@ export default function CreateEvent({ navigation }) {
           <Input placeholder="Pace (z.B. 5:00/km) optional" value={pace} onChangeText={setPace} />
         </>
       )}
-
-      <View className="h-3" />
-      <View className="flex-row items-center justify-between bg-white rounded-2xl border border-gray-200 py-3 px-4">
-        <Text className="text-black font-bold">Pacer gesucht</Text>
-        <Switch value={pacerWanted} onValueChange={setPacerWanted} />
-      </View>
 
       <View className="h-3" />
       <Input placeholder="Beschreibung (optional)" value={description} onChangeText={setDescription} />
