@@ -12,6 +12,16 @@ export async function getProfile() {
   return data;
 }
 
+export async function getProfileById(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function upsertProfile({ city, sports, full_name, avatar_url }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Nicht eingeloggt');
@@ -25,14 +35,33 @@ export async function upsertProfile({ city, sports, full_name, avatar_url }) {
   return data;
 }
 
+export async function uploadAvatar(uri) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Nicht eingeloggt');
+  const fileName = `${user.id}_${Date.now()}.jpg`;
+  const path = `avatars/${user.id}/${fileName}`;
+  const res = await fetch(uri);
+  const blob = await res.blob();
+  const { error } = await supabase.storage.from('avatars').upload(path, blob, {
+    contentType: 'image/jpeg',
+    upsert: true
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  return { url: data.publicUrl, path };
+}
+
 export async function getHostBoosts() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { total: 0, byEvent: [] };
+  return getHostBoostsByUser(user.id);
+}
 
+export async function getHostBoostsByUser(userId) {
   const { data: events, error: eerr } = await supabase
     .from('events')
     .select('id, title')
-    .eq('host_id', user.id);
+    .eq('host_id', userId);
   if (eerr) throw eerr;
   if (!events || events.length === 0) return { total: 0, byEvent: [] };
 
