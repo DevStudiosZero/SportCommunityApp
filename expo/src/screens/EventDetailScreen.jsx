@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Alert, TouchableOpacity, Linking, Platform } from 'react-native';
-import { getEventById, joinEvent, leaveEvent } from '../services/events';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, Alert, TouchableOpacity, Linking, Platform, Switch } from 'react-native';
+import { getEventById, joinEvent, leaveEvent, setPacer, boostEvent, unboostEvent } from '../services/events';
 
 function openMap({ lat, lng, label }) {
   try {
@@ -23,11 +23,13 @@ export default function EventDetailScreen({ route }) {
   const { id } = route.params || {};
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [pacer, setPacerState] = useState(false);
 
   const load = async () => {
     try {
       const res = await getEventById(id);
       setData(res);
+      setPacerState(!!res.myPacer);
     } catch (e) {
       Alert.alert('Fehler', e.message);
     }
@@ -37,6 +39,11 @@ export default function EventDetailScreen({ route }) {
     load();
   }, [id]);
 
+  const isPast = useMemo(() => {
+    if (!data?.event?.date) return false;
+    return new Date(data.event.date).getTime() < Date.now();
+  }, [data]);
+
   if (!data) {
     return (
       <View className="flex-1 bg-background p-4">
@@ -45,13 +52,41 @@ export default function EventDetailScreen({ route }) {
     );
   }
 
-  const { event, participants, joined } = data;
+  const { event, participants, joined, boostedByMe, boostsCount } = data;
 
   const toggleJoin = async () => {
     setBusy(true);
     try {
       if (joined) await leaveEvent(event.id);
-      else await joinEvent(event.id);
+      else await joinEvent(event.id, pacer);
+      await load();
+    } catch (e) {
+      Alert.alert('Fehler', e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const togglePacer = async (value) => {
+    setPacerState(value);
+    try {
+      if (!joined) return; // will be used on join
+      await setPacer(event.id, value);
+      await load();
+    } catch (e) {
+      Alert.alert('Fehler', e.message);
+    }
+  };
+
+  const toggleBoost = async () => {
+    if (!isPast) {
+      Alert.alert('Hinweis', 'Boosts sind erst nach dem Event möglich.');
+      return;
+    }
+    setBusy(true);
+    try {
+      if (boostedByMe) await unboostEvent(event.id);
+      else await boostEvent(event.id);
       await load();
     } catch (e) {
       Alert.alert('Fehler', e.message);
@@ -68,10 +103,12 @@ export default function EventDetailScreen({ route }) {
       {event.distance_km ? (
         <Text className="text-gray-700 mb-2">Distanz: {event.distance_km} km{event.pace ? ` | Pace: ${event.pace}` : ''}</Text>
       ) : null}
-      <Text className="text-gray-700 mb-4">👥 Teilnehmer: {participants.length}</Text>
-      {event.description ? (
-        <Text className="text-gray-800 mb-6">{event.description}</Text>
-      ) : null}
+      <Text className="text-gray-700 mb-2">👥 Teilnehmer: {participants.length}</Text>
+
+      <View className="flex-row items-center justify-between bg-white rounded-2xl border border-gray-200 py-3 px-4 mb-4">
+        <Text className="text-black font-bold">Ich bin Pacer 🚀</Text>
+        <Switch value={pacer} onValueChange={togglePacer} />
+      </View>
 
       <TouchableOpacity
         onPress={() => openMap({ lat: event.meeting_lat, lng: event.meeting_lng, label: event.location_text })}
@@ -83,9 +120,17 @@ export default function EventDetailScreen({ route }) {
       <TouchableOpacity
         disabled={busy}
         onPress={toggleJoin}
-        className={`rounded-full py-4 px-4 ${joined ? 'bg-white border border-accent' : 'bg-accent'}`}
+        className={`rounded-full py-4 px-4 mb-4 ${joined ? 'bg-white border border-accent' : 'bg-accent'}`}
       >
         <Text className={`text-center font-bold ${joined ? 'text-accent' : 'text-white'}`}>{joined ? 'Nicht mehr teilnehmen' : 'Teilnehmen'}</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        disabled={busy}
+        onPress={toggleBoost}
+        className={`rounded-full py-4 px-4 ${boostedByMe ? 'bg-white border border-accent' : 'bg-accent'}`}
+      >
+        <Text className={`text-center font-bold ${boostedByMe ? 'text-accent' : 'text-white'}`}>{`Boost 🚀 (${boostsCount || 0})`}</Text>
       </TouchableOpacity>
     </View>
   );

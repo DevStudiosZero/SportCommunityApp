@@ -31,16 +31,28 @@ export async function listEvents(filters = {}) {
 
   const ids = (events || []).map(e => e.id);
   if (ids.length === 0) return [];
+  // Participants counts
   const { data: parts, error: perr } = await supabase
     .from('participants')
     .select('event_id, user_id')
     .in('event_id', ids);
   if (perr) throw perr;
-  const counts = (parts || []).reduce((acc, p) => {
+  const partCounts = (parts || []).reduce((acc, p) => {
     acc[p.event_id] = (acc[p.event_id] || 0) + 1;
     return acc;
   }, {});
-  return events.map(e => ({ ...e, participantsCount: counts[e.id] || 0 }));
+  // Boosts counts
+  const { data: boosts, error: berr } = await supabase
+    .from('boosts')
+    .select('event_id, user_id')
+    .in('event_id', ids);
+  if (berr) throw berr;
+  const boostCounts = (boosts || []).reduce((acc, b) => {
+    acc[b.event_id] = (acc[b.event_id] || 0) + 1;
+    return acc;
+  }, {});
+
+  return events.map(e => ({ ...e, participantsCount: partCounts[e.id] || 0, boostsCount: boostCounts[e.id] || 0 }));
 }
 
 export async function getEventById(id) {
@@ -51,9 +63,20 @@ export async function getEventById(id) {
     .select('event_id, user_id, pacer')
     .eq('event_id', id);
   if (perr) throw perr;
+
+  const { data: boosts, error: berr } = await supabase
+    .from('boosts')
+    .select('event_id, user_id')
+    .eq('event_id', id);
+  if (berr) throw berr;
+
   const userId = await getCurrentUserId();
   const joined = !!parts?.find(p => p.user_id === userId);
-  return { event, participants: parts || [], joined };
+  const boostedByMe = !!boosts?.find(b => b.user_id === userId);
+  const boostsCount = (boosts || []).length;
+  const myPacer = !!parts?.find(p => p.user_id === userId && p.pacer);
+
+  return { event, participants: parts || [], joined, boostedByMe, boostsCount, myPacer };
 }
 
 function parseDateTime(dateStr, timeStr) {
@@ -87,9 +110,31 @@ export async function joinEvent(event_id, pacer = false) {
   if (error) throw error;
 }
 
+export async function setPacer(event_id, pacer) {
+  const user_id = await getCurrentUserId();
+  if (!user_id) throw new Error('Nicht eingeloggt');
+  // upsert will update pacer if row exists
+  const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer });
+  if (error) throw error;
+}
+
 export async function leaveEvent(event_id) {
   const user_id = await getCurrentUserId();
   if (!user_id) throw new Error('Nicht eingeloggt');
   const { error } = await supabase.from('participants').delete().match({ event_id, user_id });
+  if (error) throw error;
+}
+
+export async function boostEvent(event_id) {
+  const user_id = await getCurrentUserId();
+  if (!user_id) throw new Error('Nicht eingeloggt');
+  const { error } = await supabase.from('boosts').insert({ event_id, user_id });
+  if (error) throw error;
+}
+
+export async function unboostEvent(event_id) {
+  const user_id = await getCurrentUserId();
+  if (!user_id) throw new Error('Nicht eingeloggt');
+  const { error } = await supabase.from('boosts').delete().match({ event_id, user_id });
   if (error) throw error;
 }
