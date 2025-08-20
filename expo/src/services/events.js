@@ -5,6 +5,20 @@ async function getCurrentUserId() {
   return user?.id || null;
 }
 
+async function getMyDisplayInfo() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { display_name: null, avatar_url: null };
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name, avatar_url')
+    .eq('id', user.id)
+    .maybeSingle();
+  return {
+    display_name: data?.full_name || user.email || 'Athlet',
+    avatar_url: data?.avatar_url || null
+  };
+}
+
 const DISTANCE_SPORTS = ['Laufen', 'Rad', 'Schwimmen'];
 
 export async function listEvents(filters = {}) {
@@ -27,7 +41,6 @@ export async function listEvents(filters = {}) {
   }
 
   if (pacerWanted) {
-    // requires events.pacer_wanted boolean column; if not present, no rows will match
     query = query.eq('pacer_wanted', true);
   }
 
@@ -36,7 +49,6 @@ export async function listEvents(filters = {}) {
 
   const ids = (events || []).map(e => e.id);
   if (ids.length === 0) return [];
-  // Participants (for counts and pacer filter)
   const { data: parts, error: perr } = await supabase
     .from('participants')
     .select('event_id, user_id, pacer')
@@ -51,7 +63,6 @@ export async function listEvents(filters = {}) {
     return acc;
   }, {});
 
-  // Boosts counts
   const { data: boosts, error: berr } = await supabase
     .from('boosts')
     .select('event_id, user_id')
@@ -81,7 +92,7 @@ export async function getEventById(id) {
   if (error) throw error;
   const { data: parts, error: perr } = await supabase
     .from('participants')
-    .select('event_id, user_id, pacer')
+    .select('event_id, user_id, pacer, display_name, avatar_url')
     .eq('event_id', id);
   if (perr) throw perr;
 
@@ -120,21 +131,24 @@ export async function createEvent({ title, sport, dateStr, timeStr, location_tex
   const payload = { title, sport, date: isoDate, location_text, distance_km, pace, description, visibility, city, host_id, level, pacer_wanted };
   const { data, error } = await supabase.from('events').insert([payload]).select().single();
   if (error) throw error;
-  await supabase.from('participants').upsert({ event_id: data.id, user_id: host_id });
+  const me = await getMyDisplayInfo();
+  await supabase.from('participants').upsert({ event_id: data.id, user_id: host_id, display_name: me.display_name, avatar_url: me.avatar_url });
   return data;
 }
 
 export async function joinEvent(event_id, pacer = false) {
   const user_id = await getCurrentUserId();
   if (!user_id) throw new Error('Nicht eingeloggt');
-  const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer });
+  const me = await getMyDisplayInfo();
+  const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer, display_name: me.display_name, avatar_url: me.avatar_url });
   if (error) throw error;
 }
 
 export async function setPacer(event_id, pacer) {
   const user_id = await getCurrentUserId();
   if (!user_id) throw new Error('Nicht eingeloggt');
-  const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer });
+  const me = await getMyDisplayInfo();
+  const { error } = await supabase.from('participants').upsert({ event_id, user_id, pacer, display_name: me.display_name, avatar_url: me.avatar_url });
   if (error) throw error;
 }
 

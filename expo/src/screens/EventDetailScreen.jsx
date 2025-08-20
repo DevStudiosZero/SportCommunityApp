@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, Text, Alert, TouchableOpacity, Linking, Platform, Switch, ScrollView } from 'react-native';
+import { View, Text, Alert, TouchableOpacity, Linking, Platform, Switch, ScrollView, Image } from 'react-native';
 import { getEventById, joinEvent, leaveEvent, setPacer, boostEvent, unboostEvent } from '../services/events';
 
 function openMap({ lat, lng, label }) {
@@ -18,6 +18,20 @@ function openMap({ lat, lng, label }) {
     Alert.alert('Fehler', 'Karte konnte nicht geöffnet werden');
   }
 }
+
+const ParticipantItem = ({ name, avatar, pacer }) => (
+  <View className="flex-row items-center mr-3 mb-2 bg-white rounded-2xl border border-gray-200 px-3 py-2">
+    {avatar ? (
+      <Image source={{ uri: avatar }} style={{ width: 26, height: 26, borderRadius: 13 }} />
+    ) : (
+      <View className="w-[26px] h-[26px] rounded-full bg-accent items-center justify-center">
+        <Text className="text-white font-bold">{(name || '?').slice(0, 1).toUpperCase()}</Text>
+      </View>
+    )}
+    <Text className="ml-2 text-black">{name || 'Athlet'}</Text>
+    {pacer ? <Text className="ml-1">🚀</Text> : null}
+  </View>
+);
 
 export default function EventDetailScreen({ route }) {
   const { id } = route.params || {};
@@ -95,12 +109,6 @@ export default function EventDetailScreen({ route }) {
     }
   };
 
-  const ParticipantChip = ({ id, pacer }) => (
-    <View className={`px-3 py-2 rounded-full mr-2 mb-2 ${pacer ? 'bg-accent' : 'bg-white border border-gray-200'}`}>
-      <Text className={`${pacer ? 'text-white' : 'text-black'}`}>{`${id.slice(0, 6)}${pacer ? ' 🚀' : ''}`}</Text>
-    </View>
-  );
-
   return (
     <ScrollView className="flex-1 bg-background p-4">
       <Text className="text-2xl font-bold text-black mb-1">{event.title}</Text>
@@ -121,7 +129,7 @@ export default function EventDetailScreen({ route }) {
           <Text className="text-black font-bold mb-2">Teilnehmer</Text>
           <View className="flex-row flex-wrap">
             {participants.map((p) => (
-              <ParticipantChip key={`${p.user_id}`} id={p.user_id} pacer={!!p.pacer} />
+              <ParticipantItem key={`${p.user_id}`} name={p.display_name || p.user_id?.slice(0,6)} avatar={p.avatar_url} pacer={!!p.pacer} />
             ))}
           </View>
         </View>

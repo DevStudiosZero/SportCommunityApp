@@ -12,10 +12,10 @@ export async function getProfile() {
   return data;
 }
 
-export async function upsertProfile({ city, sports }) {
+export async function upsertProfile({ city, sports, full_name, avatar_url }) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Nicht eingeloggt');
-  const payload = { id: user.id, city, sports };
+  const payload = { id: user.id, city, sports, full_name, avatar_url };
   const { data, error } = await supabase
     .from('profiles')
     .upsert(payload, { onConflict: 'id' })

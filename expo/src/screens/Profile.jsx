@@ -11,6 +11,8 @@ const SPORT_OPTIONS = ['🏃 Laufen', '🚴 Rad', '🏊 Schwimmen', '🏋️ Kra
 export default function Profile() {
   const [city, setCity] = useState('');
   const [sports, setSports] = useState([]);
+  const [fullName, setFullName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [boosts, setBoosts] = useState({ total: 0, byEvent: [] });
 
   useEffect(() => {
@@ -19,6 +21,8 @@ export default function Profile() {
       if (p) {
         setCity(p.city || '');
         setSports(p.sports || []);
+        setFullName(p.full_name || '');
+        setAvatarUrl(p.avatar_url || '');
       }
       try {
         const b = await getHostBoosts();
@@ -35,7 +39,7 @@ export default function Profile() {
 
   const save = async () => {
     try {
-      await upsertProfile({ city, sports });
+      await upsertProfile({ city, sports, full_name: fullName, avatar_url: avatarUrl });
       Alert.alert('Gespeichert', 'Profil aktualisiert');
     } catch (e) {
       Alert.alert('Fehler', e.message);
@@ -73,6 +77,14 @@ export default function Profile() {
         </View>
       )}
 
+      <Text className="text-black mb-2 font-bold">Name</Text>
+      <Input placeholder="Dein Name" value={fullName} onChangeText={setFullName} />
+
+      <View className="h-3" />
+      <Text className="text-black mb-2 font-bold">Avatar URL</Text>
+      <Input placeholder="https://…" value={avatarUrl} onChangeText={setAvatarUrl} />
+
+      <View className="h-3" />
       <Text className="text-black mb-2 font-bold">Stadt</Text>
       <Input placeholder="z.B. Kassel" value={city} onChangeText={setCity} />
 

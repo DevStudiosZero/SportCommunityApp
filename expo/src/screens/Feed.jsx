@@ -5,6 +5,12 @@ import EventCard from '../components/EventCard';
 import { listEvents } from '../services/events';
 import { useFilters } from '../state/FiltersContext';
 
+const Pill = ({ children }) => (
+  <View className="ml-2 bg-accent rounded-full px-2 py-0.5">
+    <Text className="text-white text-xs font-bold">{children}</Text>
+  </View>
+);
+
 export default function Feed({ navigation }) {
   const { filters } = useFilters();
   const [events, setEvents] = useState([]);
@@ -41,24 +47,30 @@ export default function Feed({ navigation }) {
     filters.dateFrom,
     filters.dateTo,
     filters.minDistance,
-    filters.maxDistance
+    filters.maxDistance,
+    filters.pacerOffered ? 'pacerOffered' : '',
+    filters.pacerWanted ? 'pacerWanted' : ''
   ].filter(Boolean).length;
 
   return (
     <View className="flex-1 bg-background">
-      <View className="px-4 pt-6 pb-3 bg-white flex-row items-center justify-between">
-        <TouchableOpacity className="flex-row items-center" onPress={() => navigation.navigate('Filters')}>
-          <City color="#000" size={20} />
-          <Text className="ml-2 font-bold text-black">{filters.city || 'Stadt wählen'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Filters')} className="flex-row items-center">
-          <Settings color="#000" size={20} />
-          {activeFiltersCount > 0 && (
-            <View className="ml-2 bg-accent rounded-full px-2 py-0.5">
-              <Text className="text-white text-xs font-bold">{activeFiltersCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+      <View className="px-4 pt-6 pb-3 bg-white">
+        <View className="flex-row items-center justify-between">
+          <TouchableOpacity className="flex-row items-center" onPress={() => navigation.navigate('Filters')}>
+            <City color="#000" size={20} />
+            <Text className="ml-2 font-bold text-black">{filters.city || 'Stadt wählen'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Filters')} className="flex-row items-center">
+            <Settings color="#000" size={20} />
+            {activeFiltersCount > 0 && (
+              <Pill>{activeFiltersCount}</Pill>
+            )}
+          </TouchableOpacity>
+        </View>
+        <View className="flex-row items-center mt-2">
+          {filters.pacerOffered ? <Pill>🚀 angeboten</Pill> : null}
+          {filters.pacerWanted ? <Pill>Pacer gesucht</Pill> : null}
+        </View>
       </View>
 
       <ScrollView className="p-4" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
