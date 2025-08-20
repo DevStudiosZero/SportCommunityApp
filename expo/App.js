@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { View, Text } from 'react-native';
-import { Home, PlusCircle, UserRound, Filter } from 'lucide-react-native';
+import { Home, PlusCircle, UserRound } from 'lucide-react-native';
 import Onboarding from './src/screens/Onboarding';
 import Feed from './src/screens/Feed';
 import EventDetailScreen from './src/screens/EventDetailScreen';
@@ -15,7 +15,7 @@ import Matching from './src/screens/Matching';
 import Filters from './src/screens/Filters';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { Colors } from './src/styles/colors';
-import { loadFonts } from './src/styles/typography';
+import { useAppFonts } from './src/styles/typography';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -83,7 +83,16 @@ function RootNavigator() {
 }
 
 export default function App() {
-  useEffect(() => { loadFonts(); }, []);
+  const fontsLoaded = useAppFonts();
+
+  if (!fontsLoaded) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <Text className="text-black">Lade Schriftarten…</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
